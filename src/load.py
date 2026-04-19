@@ -1,7 +1,11 @@
+from pathlib import Path
 import sqlite3
 
 def save_to_db(data):
-    conn = sqlite3.connect("data/database.db")
+    BASE_DIR = Path(__file__).resolve().parent.parent
+    db_path = BASE_DIR / "data" / "database.db"
+
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
     cursor.execute("""
