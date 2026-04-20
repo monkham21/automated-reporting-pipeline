@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, render_template
 import sqlite3
 from pathlib import Path
 
@@ -6,63 +6,69 @@ app = Flask(__name__)
 
 DB_PATH = Path(__file__).resolve().parent.parent / "data" / "database.db"
 
-def get_report_data():
+
+def get_dashboard_data():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
-    # Example: adjust table/column names to your schema
     cursor.execute("""
-    SELECT currency, MAX(rate)
-    FROM exchange_rates
-    GROUP BY currency
-    ORDER BY MAX(rate) DESC
-    LIMIT 5
+        SELECT currency, MAX(rate)
+        FROM exchange_rates
+        GROUP BY currency
+        ORDER BY MAX(rate) DESC
+        LIMIT 10
     """)
-    
-    top_rates = cursor.fetchall()
+    rows = cursor.fetchall()
 
     cursor.execute("SELECT COUNT(*) FROM exchange_rates")
     total_count = cursor.fetchone()[0]
 
     conn.close()
 
-    return top_rates, total_count
+    return rows, total_count
 
+
+@app.route("/dashboard")
+def dashboard():
+    rows, total_count = get_dashboard_data()
+    return render_template("dashboard.html", rows=rows, total=total_count)
 
 @app.route("/run", methods=["GET"])
-def run_pipeline():
-    # Step 1: Run your pipeline
+def run_pipeline_route():
     from main import run_pipeline
-    run_pipeline()
+    run_pipeline()  # run your pipeline
 
-    # Step 2: Get data from DB
-    top_rates, total_count = get_report_data()
+    rows, total_count = get_dashboard_data()
 
-    # Step 3: Format report
-    report = """
+    report = f"""
     <h2>📊 Daily Exchange Rate Report</h2>
 
-    <h3>Top 5 Exchange Rates:</h3>
+    <p><b>Date:</b> Today</p>
+
+    <h3>💱 Top 5 Strongest Currencies (vs Base)</h3>
     <ul>
     """
 
-    for currency, rate in top_rates:
-        report += f"<li>{currency}: {rate:.2f}</li>"
+    for currency, rate in rows[:5]:
+        report += f"<li><b>{currency}</b>: {rate:,.2f}</li>"
 
     report += f"""
     </ul>
 
-    <p><b>Total currencies processed:</b> {total_count}</p>
+    <p><b>Total currencies tracked:</b> {total_count}</p>
 
-    <p>✔ Pipeline executed successfully<br>
-    ✔ Data stored in database</p>
+    <hr>
 
+    <p>✅ Pipeline executed successfully<br>
+    ✅ Data updated in database</p>
+
+    <p>🔗 <a href="http://localhost:5000/dashboard">View Full Dashboard</a></p>
+
+    <p><i>Automated via n8n</i></p>
     """
 
     return jsonify({"report": report})
 
-   
-
-
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    print("Starting Flask server...")
+    app.run(host="0.0.0.0", port=5000, debug=True)

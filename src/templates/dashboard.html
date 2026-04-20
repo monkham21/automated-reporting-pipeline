@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Exchange Rate Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background: #f4f6f8;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+        }
+
+        .container {
+            max-width: 900px;
+        }
+
+        .cards {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            flex: 1;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0px 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .card h3 {
+            margin: 0;
+            font-size: 16px;
+            color: #777;
+        }
+
+        .card p {
+            font-size: 22px;
+            margin-top: 5px;
+            font-weight: bold;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            background: white;
+            margin-top: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            text-align: left;
+        }
+
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        canvas {
+            margin-top: 30px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .footer {
+            margin-top: 20px;
+            color: #777;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>📊 Exchange Rate Dashboard</h1>
+    <p>Base Currency: USD</p>
+
+    <!-- METRIC CARDS -->
+    <div class="cards">
+        <div class="card">
+            <h3>Total Records</h3>
+            <p>{{ total }}</p>
+        </div>
+
+        <div class="card">
+            <h3>Top Currency</h3>
+            <p>
+                {{ rows[0][0] }} <br>
+                {{ "%.2f"|format(rows[0][1]) }}
+            </p>
+        </div>
+    </div>
+
+    <!-- TABLE -->
+    <table>
+        <tr>
+            <th>Currency</th>
+            <th>Rate</th>
+        </tr>
+        {% for currency, rate in rows %}
+        <tr>
+            <td>{{ currency }}</td>
+            <td>{{ "%.2f"|format(rate) }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <!-- CHART -->
+    <canvas id="rateChart"></canvas>
+
+    <script>
+        const rawData = {{ rows | tojson | safe }};
+
+        const chartLabels = rawData.map(item => item[0]);
+        const chartData = rawData.map(item => item[1]);
+
+        new Chart(document.getElementById('rateChart'), {
+            type: 'bar',
+            data: {
+                labels: chartLabels,
+                datasets: [{
+                    label: 'Exchange Rates',
+                    data: chartData
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    </script>
+
+    <div class="footer">
+        Last updated automatically via pipeline
+    </div>
+
+</div>
+
+</body>
+</html>
